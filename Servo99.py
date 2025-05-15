@@ -15,7 +15,6 @@ bus = serial.Serial(
 
 RADIOUS_CM = 1.50 #Centimeters
 
-CM = 20
 
 TimeOfBringWeightUp = 0.0001 # milliseconds
 
@@ -30,17 +29,43 @@ def cm_to_degrees(CM, RADIOUS_CM):
     return (CM / (2 * pi * RADIOUS_CM)) * 360
 
 # Function that moves the servo 34 to a position that is 10 centimeters up in a certain velocity
-def BringWeightUp():
-    sleep(1)
-    print("Starting BringWeightUp...")
-    degrees = int(cm_to_degrees(CM, RADIOUS_CM) * 10)  # 20 cm de recorrido
-    print(f"Sending command: #{SERVO_A_ID}D{degrees}T{5000}\\r")
-    bus.write(f"#{SERVO_A_ID}D{degrees}T{TimeOfBringWeightUp}\r".encode())
-    sleep(MOVE_TIME_MS / 1000.0 + 0.5) 
-    print("BringWeightUp complete.")
+def BringWeightUp(height_cm=-10, velocity_ms=2000):
+    """
+    Mueve el servo a una posición específica para levantar un peso.
+    
+    Args:
+        height_cm (float): Altura en centímetros a la que se quiere levantar (default: 20)
+        velocity_ms (int): Tiempo en milisegundos para completar el movimiento (default: 5000)
+    
+    Returns:
+        bool: True si el movimiento fue exitoso, False si hubo error
+    """
+    try:
+        print(f"Iniciando BringWeightUp - Altura: {height_cm}cm, Velocidad: {velocity_ms}ms")
+            
+        # Calcular grados necesarios
+        degrees = int(cm_to_degrees(height_cm, RADIOUS_CM) * 10)
+            
+        # Enviar comando al servo
+        command = f"#{SERVO_A_ID}D{degrees}T{velocity_ms}\r"
+        print(f"Enviando comando: {command}")
+        bus.write(command.encode())
+        
+        # Esperar a que complete el movimiento
+        sleep(velocity_ms / 1000.0 + 0.5)
+        
+        print("BringWeightUp completado exitosamente")
+        return True
+        
+    except ValueError as ve:
+        print(f"Error de validación: {ve}")
+        return False
+    except Exception as e:
+        print(f"Error inesperado en BringWeightUp: {e}")
+        return False
 
 # Function to perform squat movement
-def squat():
+def squatdown():
     """
     Performs a squat movement by moving the servos a certain linear distance (in cm),
     converting that distance to degrees, and sending the appropriate command.
@@ -48,29 +73,19 @@ def squat():
     sleep(1)
     print("Starting squat...")
 
-    # Define the movement in centimeters for the squat (adjust as needed)
-    squat_cm = 10
 
     # Convert cm to degrees (multiplied by 10 for servo protocol)
-    degrees = int(cm_to_degrees(squat_cm, RADIOUS_CM) * 10)
+    degreesa = int(cm_to_degrees(20, RADIOUS_CM) * 10)
+    degreesb = int(cm_to_degrees(5.2, RADIOUS_CM) * 10)
+    degreesc = -int(cm_to_degrees(0, RADIOUS_CM) * 10)
 
     # Move the main servos for the squat
-    print(f"Sending command: #{SERVO_C_ID}D{degrees}T{MOVE_TIME_MS}\\r")
-    bus.write(f"#{SERVO_C_ID}D{degrees}T{MOVE_TIME_MS}\r".encode())
+    #bus.write(f"#{SERVO_A_ID}D{degreesa}T{MOVE_TIME_MS}\r".encode())
+    sleep(3)
+    #bus.write(f"#{SERVO_A_ID}D{-degreesa}T{MOVE_TIME_MS}\r".encode())
+    bus.write(f"#{SERVO_B_ID}D{degreesb}T{MOVE_TIME_MS}\r".encode())
+    bus.write(f"#{SERVO_C_ID}D{degreesc}T{MOVE_TIME_MS}\r".encode())
     sleep(0.5)
-    print(f"Sending command: #{SERVO_A_ID}D{-degrees}T{MOVE_TIME_MS}\\r")
-    bus.write(f"#{SERVO_A_ID}D{-degrees}T{MOVE_TIME_MS}\r".encode())
-    print(f"Sending command: #{SERVO_B_ID}D{-degrees}T{MOVE_TIME_MS}\\r")
-    bus.write(f"#{SERVO_B_ID}D{-degrees}T{MOVE_TIME_MS}\r".encode())
-    print(f"Sending command: #{SERVO_C_ID}D{-degrees}T{MOVE_TIME_MS}\\r")
-    bus.write(f"#{SERVO_C_ID}D{-degrees}T{MOVE_TIME_MS}\r".encode())
-    sleep(0.5)
-    print(f"Sending command: #{SERVO_A_ID}D{degrees}T{MOVE_TIME_MS}\\r")
-    bus.write(f"#{SERVO_A_ID}D{degrees}T{MOVE_TIME_MS}\r".encode())
-    print(f"Sending command: #{SERVO_B_ID}D{degrees}T{MOVE_TIME_MS}\\r")
-    bus.write(f"#{SERVO_B_ID}D{degrees}T{MOVE_TIME_MS}\r".encode())
-    print(f"Sending command: #{SERVO_C_ID}D{degrees}T{MOVE_TIME_MS}\\r")
-    bus.write(f"#{SERVO_C_ID}D{degrees}T{MOVE_TIME_MS}\r".encode())
 
     sleep(MOVE_TIME_MS / 1000.0 + 0.5) 
     print("Squat complete.")
@@ -79,15 +94,15 @@ def zero():
     sleep(0.1)
     print("Moving servos to ZERO")
     sleep(0.1)
-    bus.write(f"#{SERVO_A_ID}D{0}\r".encode())
+    bus.write(f"#{SERVO_A_ID}D{8.5}\r".encode())
     sleep(0.05)
     bus.write(f"#{SERVO_B_ID}D{0}\r".encode())
     sleep(0.05)
-    bus.write(f"#{SERVO_C_ID}D{0}\r".encode())
+    bus.write(f"#{SERVO_C_ID}D{-14}\r".encode())
     sleep(0.05)
     bus.write(f"#{SERVO_D_ID}D{0}\r".encode())
     sleep(0.05)
-    sleep(MOVE_TIME_MS / 1000.0 + 0.5)
+    sleep(2000 / 1000.0 + 0.5)
     print("Servos at ZERO")
 
 # Servo IDs (actual hardware mapping)
@@ -161,7 +176,7 @@ try:
                 if current_b1_state and current_b2_state:
                     pass  # Both pressed, ignore
                 elif current_b1_state:
-                    squat()
+                    squatdown()
                     action_taken = True
         # Only button 2 pressed: move servos to B positions
         elif button2_is_pressed and not button1_is_pressed and not action_taken:
