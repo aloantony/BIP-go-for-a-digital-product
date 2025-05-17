@@ -15,9 +15,10 @@ bus = serial.Serial(
 
 RADIOUS_CM = 1.50 #Centimeters
 
+CM = 20
 
 TimeOfBringWeightUp = 0.0001 # milliseconds
-
+# Function to convert centimeters to degrees of rotation that will use all the functions that modify positions of the servos
 def cm_to_degrees(CM, RADIOUS_CM):
     """
     Converts a linear distance in centimeters to degrees of rotation
@@ -65,7 +66,7 @@ def BringWeightUp(height_cm=-10, velocity_ms=2000):
         return False
 
 # Function to perform squat movement
-def squatdown():
+def SnatchStart():
     """
     Performs a squat movement by moving the servos a certain linear distance (in cm),
     converting that distance to degrees, and sending the appropriate command.
@@ -75,9 +76,8 @@ def squatdown():
 
 
     # Convert cm to degrees (multiplied by 10 for servo protocol)
-    degreesa = int(cm_to_degrees(20, RADIOUS_CM) * 10)
-    degreesb = int(cm_to_degrees(5.2, RADIOUS_CM) * 10)
-    degreesc = -int(cm_to_degrees(0, RADIOUS_CM) * 10)
+    degreesb = int(cm_to_degrees(-3.5, RADIOUS_CM) * 10)
+    degreesc = int(cm_to_degrees(-2 RADIOUS_CM) * 10)
 
     # Move the main servos for the squat
     #bus.write(f"#{SERVO_A_ID}D{degreesa}T{MOVE_TIME_MS}\r".encode())
@@ -89,6 +89,56 @@ def squatdown():
 
     sleep(MOVE_TIME_MS / 1000.0 + 0.5) 
     print("Squat complete.")
+
+def SquatUpWithBarUp():
+    """
+    Brings servo A, to position 10cm at the same velocity servo B and C come up to their zero positions."""
+    sleep(1)
+    print("Bringing bar up...")
+    # Convert cm to degrees (multiplied by 10 for servo protocol)
+    degreesa = int(cm_to_degrees(10, RADIOUS_CM) * 10)
+    degreesb = int(cm_to_degrees(0, RADIOUS_CM) * 10)
+    degreesc = int(cm_to_degrees(0, RADIOUS_CM) * 10)
+    print(f"Squating up with bar up - degrees: {degreesa}, {degreesb}, {degreesc}")
+
+def SquatDownWithBarUp(velocity_ms=MOVE_TIME_MS):
+    """
+    Moves servo A (bar) down to 6.3cm, servo B (head) to -2.8cm, and servo C (legs) to -2cm,
+    simulating the receiving phase of the snatch with the bar overhead.
+    """
+    sleep(1)
+    print("SquatDownWithBarUp: Bringing bar and body down to receive the bar.")
+
+    # Calculate degrees for each servo (multiplied by 10 for protocol)
+    degreesa = int(cm_to_degrees(-6.3, RADIOUS_CM) * 10)
+    degreesb = int(cm_to_degrees(-2.8, RADIOUS_CM) * 10)
+    degreesc = int(cm_to_degrees(-2, RADIOUS_CM) * 10)
+
+    print(f"Sending commands: A={degreesa}, B={degreesb}, C={degreesc} (velocity {velocity_ms}ms)")
+    bus.write(f"#{SERVO_A_ID}D{degreesa}T{velocity_ms}\r".encode())
+    bus.write(f"#{SERVO_B_ID}D{degreesb}T{velocity_ms}\r".encode())
+    bus.write(f"#{SERVO_C_ID}D{degreesc}T{velocity_ms}\r".encode())
+
+    sleep(velocity_ms / 1000.0 + 0.5)
+    print("SquatDownWithBarUp complete.")
+
+def SquatUpWithBarDown():
+    """
+    Brings al servo to zero position"""
+    zero()
+    
+
+def snatch():cccccccccccccccc
+    SnatchStart()
+    sleep(2)
+    SquatUpWithBarDown()
+    sleep(2)
+    SquatDownWithBarUp()
+    sleep(2)
+    SquatUpWithBarUp()
+    sleep(2)
+    zero()
+    print("Snatch sequence complete.")
 
 def zero():
     sleep(0.1)
@@ -178,7 +228,7 @@ try:
                 elif current_b1_state:
                     squatdown()
                     action_taken = True
-        # Only button 2 pressed: move servos to B positions
+        # Only button 2 pressed: run snatch sequence
         elif button2_is_pressed and not button1_is_pressed and not action_taken:
             if not button2_was_pressed:
                 sleep(BOTH_PRESS_DELAY_S)
@@ -188,7 +238,7 @@ try:
                 if current_b1_state and current_b2_state:
                     pass  # Both pressed, ignore
                 elif current_b2_state:
-                    BringWeightUp()
+                    snatch()  # <-- Run snatch sequence when red button is pressed
                     action_taken = True
         
         if action_taken:
